@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>自主學習時間規劃</title>
+<style>
+  :root {
+    --primary: #4f6ef7;
+    --primary-light: #eef0ff;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --bg: #f5f7ff;
+    --card: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── 頂部導航 ── */
+  header {
+    background: var(--primary);
+    color: #fff;
+    padding: 0 24px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(79,110,247,0.25);
+  }
+  header h1 { font-size: 1rem; font-weight: 700; }
+  .nav-right { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; }
+  .nav-user { opacity: 0.9; }
+  .btn-link { background: rgba(255,255,255,0.2); border: none; color: #fff; padding: 4px 12px; border-radius: 20px; cursor: pointer; font-size: 0.82rem; }
+  .btn-link:hover { background: rgba(255,255,255,0.35); }
+
+  /* ── 分頁 Tab ── */
+  .tabs { display: flex; background: #fff; border-bottom: 2px solid var(--border); padding: 0 24px; }
+  .tab { padding: 12px 20px; border: none; background: none; cursor: pointer; font-size: 0.9rem; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .tab:hover { color: var(--primary); }
+
+  /* ── 主內容 ── */
+  main { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── 卡片 ── */
+  .card { background: var(--card); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 16px; border: 1px solid var(--border); }
+  .card-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+  /* ── 表單 ── */
+  .form-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 100px; }
+  label { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+  input, select, textarea { padding: 7px 11px; border: 1.5px solid var(--border); border-radius: 7px; font-size: 0.88rem; color: var(--text); background: #fff; transition: border-color 0.15s; font-family: inherit; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+  textarea { resize: vertical; min-height: 56px; }
+
+  /* ── 按鈕 ── */
+  .btn { padding: 8px 18px; border: none; border-radius: 7px; font-size: 0.86rem; font-weight: 600; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: #3b5ae0; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { background: #16a34a; }
+  .btn-danger { background: var(--danger); color: #fff; font-size: 0.76rem; padding: 5px 9px; }
+  .btn-ghost { background: var(--primary-light); color: var(--primary); }
+  .btn-ghost:hover { background: #dde3ff; }
+
+  /* ── 統計列 ── */
+  .stats-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .stat-box { flex: 1; min-width: 100px; background: #fff; border-radius: var(--radius); padding: 14px 16px; text-align: center; border: 1px solid var(--border); }
+  .stat-num { font-size: 1.8rem; font-weight: 800; color: var(--primary); }
+  .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+  /* ── 甘特圖 ── */
+  .gantt-wrap { overflow-x: auto; }
+  .gantt-inner { min-width: 600px; }
+  .gantt-header { display: flex; margin-left: 88px; position: relative; height: 32px; margin-bottom: 2px; }
+  .gantt-body { position: relative; }
+  .gantt-row { display: flex; align-items: center; margin-bottom: 5px; height: 34px; }
+  .gantt-name {
+    width: 88px; font-size: 0.8rem; color: var(--muted); flex-shrink: 0;
+    padding-right: 8px; text-align: right; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .gantt-track {
+    flex: 1; position: relative; height: 28px;
+    background: #f8fafc; border: 1px solid var(--border);
+    border-radius: 6px; overflow: hidden;
+  }
+  .gantt-track.empty { background: #fafafa; }
+  .gantt-bar {
+    position: absolute; height: 100%;
+    display: flex; align-items: center;
+    overflow: hidden; cursor: pointer;
+    transition: filter 0.1s;
+  }
+  .gantt-bar:hover { filter: brightness(0.92); }
+  .gantt-bar-label { font-size: 10px; padding: 0 5px; white-space: nowrap; overflow: hidden; font-weight: 600; }
+  .gantt-grid-line { position: absolute; top: 0; width: 1px; height: 100%; background: var(--border); pointer-events: none; }
+  .gantt-empty-label { font-size: 11px; color: #cbd5e1; display: flex; align-items: center; height: 100%; padding-left: 10px; font-style: italic; }
+
+  /* ── 時間軸刻度 ── */
+  .tick-label { position: absolute; font-size: 10px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; top: 0; }
+  .tick-line { position: absolute; bottom: 0; width: 1px; }
+
+  /* ── Tooltip ── */
+  #tooltip {
+    position: fixed; background: #1e293b; color: #fff;
+    padding: 7px 12px; border-radius: 7px; font-size: 12px;
+    pointer-events: none; z-index: 999; display: none;
+    max-width: 200px; line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+
+  /* ── 未提交 ── */
+  .no-submit-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .chip { background: #fef3c7; color: #92400e; font-size: 0.75rem; padding: 3px 9px; border-radius: 20px; font-weight: 600; }
+
+  /* ── 圖例 ── */
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── 篩選列 ── */
+  .filter-row { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .filter-row label { font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+
+  /* ── 登入頁 ── */
+  .login-wrap { max-width: 380px; margin: 60px auto; }
+  .login-tabs { display: flex; margin-bottom: 18px; }
+  .login-tab { flex: 1; padding: 9px; text-align: center; cursor: pointer; border: 1.5px solid var(--border); background: #fff; font-size: 0.88rem; color: var(--muted); font-weight: 600; }
+  .login-tab:first-child { border-radius: 7px 0 0 7px; }
+  .login-tab:last-child { border-radius: 0 7px 7px 0; border-left: none; }
+  .login-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .login-form { display: none; }
+  .login-form.active { display: block; }
+  .login-form .form-group { margin-bottom: 10px; }
+
+  /* ── 我的計劃 ── */
+  .slot-row { display: flex; gap: 8px; align-items: flex-start; padding: 10px; background: var(--bg); border-radius: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .slot-idx { width: 26px; height: 26px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 5px; }
+  .slot-fields { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; align-items: flex-start; }
+  .slot-fields .form-group.time { min-width: 85px; max-width: 100px; }
+  .slot-fields .form-group.content { flex: 2; min-width: 140px; }
+  .slot-fields .form-group.goal { flex: 1.5; min-width: 120px; }
+
+  /* ── Alert ── */
+  .alert { padding: 9px 14px; border-radius: 7px; font-size: 0.86rem; margin-bottom: 12px; }
+  .alert-success { background: #dcfce7; color: #15803d; }
+  .alert-error { background: #fee2e2; color: #b91c1c; }
+
+  /* ── Empty ── */
+  .empty { text-align: center; padding: 36px 20px; color: var(--muted); }
+  .empty-icon { font-size: 2rem; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div id="tooltip"></div>
+
+<!-- ── 登入畫面 ── -->
+<div id="loginPage" style="background:var(--bg);min-height:100vh;display:flex;flex-direction:column;">
+  <header><h1>📚 自主學習時間規劃</h1></header>
+  <div class="login-wrap">
+    <div class="card">
+      <div class="card-title">🔐 登入系統</div>
+      <div class="login-tabs">
+        <div class="login-tab active" onclick="switchLoginTab('login')">登入</div>
+        <div class="login-tab" onclick="switchLoginTab('register')">學生註冊</div>
+      </div>
+      <div class="login-form active" id="loginForm">
+        <div class="form-group"><label>帳號</label><input id="loginUser" placeholder="輸入帳號" onkeydown="if(event.key==='Enter')doLogin()" /></div>
+        <div class="form-group"><label>密碼</label><input id="loginPass" type="password" placeholder="輸入密碼" onkeydown="if(event.key==='Enter')doLogin()" /></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="doLogin()">登入</button>
+        <div id="loginAlert"></div>
+      </div>
+      <div class="login-form" id="registerForm">
+        <div class="form-group"><label>帳號（登入用）</label><input id="regUser" placeholder="例如 student01" /></div>
+        <div class="form-group"><label>密碼</label><input id="regPass" type="password" placeholder="設定密碼" /></div>
+        <div class="form-group"><label>姓名</label><input id="regName" placeholder="真實姓名" /></div>
+        <div class="form-group"><label>班級</label><input id="regClass" placeholder="例如：高一甲" /></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="doRegister()">註冊</button>
+        <div id="registerAlert"></div>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:0.75rem;color:var(--muted);margin-top:8px;">老師帳號：teacher / teacher123</p>
+  </div>
+</div>
+
+<!-- ── 主應用 ── -->
+<div id="app" style="display:none;">
+  <header>
+    <h1>📚 自主學習時間規劃</h1>
+    <div class="nav-right">
+      <span class="nav-user" id="navUser"></span>
+      <button class="btn-link" onclick="doLogout()">登出</button>
+    </div>
+  </header>
+  <div class="tabs" id="tabBar">
+    <button class="tab active" data-tab="overview" onclick="showTab('overview',this)">📊 總覽看板</button>
+    <button class="tab" data-tab="myplan" id="myPlanTab" onclick="showTab('myplan',this)">✏️ 我的計劃</button>
+  </div>
+  <main>
+
+    <!-- 總覽看板 -->
+    <div class="page active" id="overviewPage">
+      <div class="stats-row" id="statsRow"></div>
+
+      <div class="card">
+        <div class="filter-row">
+          <label>日期</label>
+          <input type="date" id="overviewDate" onchange="loadOverview()" style="width:auto;" />
+          <button class="btn btn-ghost" onclick="setDate(today());loadOverview()">今天</button>
+          <button class="btn btn-ghost" onclick="setDate('');loadOverview()">全部</button>
+        </div>
+
+        <!-- 未提交 -->
+        <div id="noSubmitSection" style="display:none;margin-bottom:14px;">
+          <div style="font-size:0.8rem;font-weight:700;color:var(--warning);">⚠️ 尚未提交</div>
+          <div class="no-submit-chips" id="noSubmitList"></div>
+        </div>
+
+        <!-- 甘特圖區域 -->
+        <div id="ganttArea"></div>
+
+        <!-- 圖例 -->
+        <div class="legend" id="legend" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- 我的計劃 -->
+    <div class="page" id="myplanPage">
+      <div class="card">
+        <div class="card-title">✏️ 填寫我的時間規劃</div>
+        <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;">
+          <div class="form-group" style="flex:0 0 auto;">
+            <label>日期</label>
+            <input type="date" id="planDate" />
+          </div>
+          <button class="btn btn-ghost" onclick="loadMyPlan()">載入已填資料</button>
+        </div>
+        <div id="planAlert"></div>
+        <div id="slotList"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="btn btn-ghost" onclick="addSlot()">＋ 新增時段</button>
+          <button class="btn btn-success" onclick="submitPlan()">✔ 送出計劃</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ── 工具 ─────────────────────────────────────
+let token = localStorage.getItem('token');
+let currentUser = null;
+let allUsers = [];
+
+function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function setDate(d) { document.getElementById('overviewDate').value = d; }
+
+async function api(method, path, body) {
+  const res = await fetch(path, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || '伺服器錯誤');
+  return data;
+}
+
+function showAlert(el, msg, type = 'error') {
+  document.getElementById(el).innerHTML = `<div class="alert alert-${type}" style="margin-top:10px;">${msg}</div>`;
+}
+
+// ── 登入 / 登出 ────────────────────────────────
+function switchLoginTab(t) {
+  document.querySelectorAll('.login-tab').forEach((el, i) => el.classList.toggle('active', (i===0)===(t==='login')));
+  document.getElementById('loginForm').classList.toggle('active', t==='login');
+  document.getElementById('registerForm').classList.toggle('active', t==='register');
+}
+
+async function doLogin() {
+  try {
+    const res = await api('POST', '/api/login', { username: document.getElementById('loginUser').value.trim(), password: document.getElementById('loginPass').value });
+    token = res.token; currentUser = res.user;
+    localStorage.setItem('token', token);
+    enterApp();
+  } catch(e) { showAlert('loginAlert', e.message); }
+}
+
+async function doRegister() {
+  try {
+    await api('POST', '/api/register', { username: document.getElementById('regUser').value.trim(), password: document.getElementById('regPass').value, display_name: document.getElementById('regName').value.trim(), class_name: document.getElementById('regClass').value.trim() });
+    showAlert('registerAlert', '✅ 註冊成功，請切換到登入頁面', 'success');
+  } catch(e) { showAlert('registerAlert', e.message); }
+}
+
+function doLogout() {
+  token = null; currentUser = null;
+  localStorage.removeItem('token');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+}
+
+async function enterApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('navUser').textContent = `${currentUser.class_name} · ${currentUser.display_name}`;
+  if (currentUser.role === 'teacher') document.getElementById('myPlanTab').style.display = 'none';
+  try { allUsers = (await api('GET', '/api/users')).filter(u => u.role === 'student'); } catch {}
+  setDate(today());
+  loadOverview();
+}
+
+function showTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name + 'Page').classList.add('active');
+  if (name === 'myplan') {
+    if (!document.getElementById('planDate').value) document.getElementById('planDate').value = today();
+    if (document.getElementById('slotList').children.length === 0) addSlot();
+  }
+}
+
+// ── 顏色系統 ─────────────────────────────────
+const PALETTE = [
+  { bg: '#dbeafe', bar: '#3b82f6', text: '#1e40af' },
+  { bg: '#fce7f3', bar: '#ec4899', text: '#9d174d' },
+  { bg: '#d1fae5', bar: '#10b981', text: '#065f46' },
+  { bg: '#fef3c7', bar: '#f59e0b', text: '#92400e' },
+  { bg: '#ede9fe', bar: '#8b5cf6', text: '#4c1d95' },
+  { bg: '#ffedd5', bar: '#f97316', text: '#7c2d12' },
+  { bg: '#cffafe', bar: '#06b6d4', text: '#164e63' },
+  { bg: '#fee2e2', bar: '#e11d48', text: '#881337' },
+  { bg: '#ecfccb', bar: '#84cc16', text: '#365314' },
+  { bg: '#f3f4f6', bar: '#6b7280', text: '#1f2937' },
+];
+
+const colorMap = {};
+let colorIdx = 0;
+function getColor(content) {
+  const key = content.trim();
+  if (!colorMap[key]) colorMap[key] = PALETTE[colorIdx++ % PALETTE.length];
+  return colorMap[key];
+}
+function resetColors() { for (const k in colorMap) delete colorMap[k]; colorIdx = 0; }
+
+// ── 時間工具 ──────────────────────────────────
+function timeToMin(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+function minToTime(m) {
+  return `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}`;
+}
+
+// ── 甘特圖渲染 ────────────────────────────────
+function renderGantt(plans, users) {
+  const area = document.getElementById('ganttArea');
+  const legendEl = document.getElementById('legend');
+  resetColors();
+
+  if (plans.length === 0) {
+    area.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>這天還沒有任何計劃</p></div>';
+    legendEl.style.display = 'none';
+    return;
+  }
+
+  // 計算時間範圍（自動偵測 + 至少 60 分鐘）
+  let minT = Infinity, maxT = -Infinity;
+  plans.forEach(p => {
+    minT = Math.min(minT, timeToMin(p.time_start));
+    maxT = Math.max(maxT, timeToMin(p.time_end));
+  });
+  // 四捨五入到 30 分鐘邊界
+  minT = Math.floor(minT / 30) * 30;
+  maxT = Math.ceil(maxT / 30) * 30;
+  if (maxT - minT < 60) maxT = minT + 60;
+  const totalMin = maxT - minT;
+
+  function pct(m) { return ((m - minT) / totalMin * 100).toFixed(4) + '%'; }
+
+  // 依學生分組
+  const grouped = {};
+  plans.forEach(p => {
+    if (!grouped[p.user_id]) grouped[p.user_id] = { display_name: p.display_name, class_name: p.class_name, slots: [] };
+    grouped[p.user_id].slots.push(p);
+  });
+
+  // 若有全部使用者清單，把沒提交的也加進來（顯示空列）
+  const submittedIds = new Set(Object.keys(grouped).map(Number));
+  users.forEach(u => {
+    if (!submittedIds.has(u.id)) grouped['empty_' + u.id] = { display_name: u.display_name, class_name: u.class_name, slots: [], empty: true };
+  });
+
+  // 按班級+姓名排序
+  const rows = Object.values(grouped).sort((a, b) => {
+    const c = a.class_name.localeCompare(b.class_name, 'zh-TW');
+    return c !== 0 ? c : a.display_name.localeCompare(b.display_name, 'zh-TW');
+  });
+
+  // 為所有格子先計算顏色（統一 colorMap）
+  rows.forEach(r => r.slots.forEach(s => getColor(s.content)));
+
+  let html = `<div class="gantt-wrap"><div class="gantt-inner">`;
+
+  // 時間軸 header
+  html += `<div class="gantt-header" id="gh" style="position:relative; margin-left:88px; height:32px; margin-bottom:2px;">`;
+  for (let m = minT; m <= maxT; m += 30) {
+    const l = pct(m);
+    html += `<div class="tick-label" style="left:${l}">${minToTime(m)}</div>`;
+    html += `<div class="tick-line" style="left:${l}; height:10px; background:var(--border); bottom:0; position:absolute; width:1px;"></div>`;
+  }
+  // 細刻度（每 5 分鐘）
+  for (let m = minT; m <= maxT; m += 5) {
+    if (m % 30 === 0) continue;
+    const l = pct(m);
+    html += `<div style="position:absolute; left:${l}; bottom:0; width:1px; height:5px; background:var(--border);"></div>`;
+  }
+  html += `</div>`;
+
+  // 學生列
+  rows.forEach(row => {
+    html += `<div class="gantt-row">`;
+    html += `<div class="gantt-name" title="${row.display_name}">${row.display_name}</div>`;
+    html += `<div class="gantt-track${row.empty ? ' empty' : ''}">`;
+
+    // 網格線（每 30 分鐘）
+    for (let m = minT + 30; m < maxT; m += 30) {
+      html += `<div class="gantt-grid-line" style="left:${pct(m)};"></div>`;
+    }
+
+    if (row.empty) {
+      html += `<div class="gantt-empty-label">尚未提交</div>`;
+    } else {
+      row.slots.forEach(s => {
+        const sMin = timeToMin(s.time_start);
+        const eMin = timeToMin(s.time_end);
+        const dur = eMin - sMin;
+        if (dur <= 0) return;
+        const c = getColor(s.content);
+        const widthPct = (dur / totalMin * 100).toFixed(4) + '%';
+        html += `<div class="gantt-bar"
+          style="left:${pct(sMin)};width:${widthPct};background:${c.bg};border-left:3px solid ${c.bar};"
+          data-tip="${s.time_start}–${s.time_end}｜${esc(s.content)}${s.goal ? '\\n目標：' + esc(s.goal) : ''}"
+          onmouseenter="showTip(event,this)" onmouseleave="hideTip()">
+          <span class="gantt-bar-label" style="color:${c.text};">${dur >= 15 ? esc(s.content) : ''}</span>
+        </div>`;
+      });
+    }
+
+    html += `</div></div>`;
+  });
+
+  html += `</div></div>`;
+  area.innerHTML = html;
+
+  // 圖例
+  legendEl.style.display = 'flex';
+  legendEl.innerHTML = '<span style="font-size:11px;color:var(--muted);font-weight:600;">活動類型：</span>';
+  Object.entries(colorMap).forEach(([label, c]) => {
+    legendEl.innerHTML += `<div class="legend-item"><div class="legend-dot" style="background:${c.bar};"></div>${label}</div>`;
+  });
+}
+
+// ── Tooltip ──────────────────────────────────
+const tip = document.getElementById('tooltip');
+function showTip(e, el) {
+  tip.style.display = 'block';
+  tip.textContent = '';
+  el.dataset.tip.split('\n').forEach((line, i) => {
+    if (i > 0) tip.appendChild(document.createElement('br'));
+    tip.appendChild(document.createTextNode(line));
+  });
+  moveTip(e);
+}
+function moveTip(e) {
+  tip.style.left = (e.clientX + 14) + 'px';
+  tip.style.top = (e.clientY - 10) + 'px';
+}
+document.addEventListener('mousemove', e => { if (tip.style.display === 'block') moveTip(e); });
+function hideTip() { tip.style.display = 'none'; }
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── 總覽看板 ─────────────────────────────────
+async function loadOverview() {
+  const date = document.getElementById('overviewDate').value;
+  document.getElementById('ganttArea').innerHTML = '<div class="empty"><div class="empty-icon">⏳</div><p>載入中…</p></div>';
+
+  try {
+    const plans = await api('GET', '/api/plans/all' + (date ? `?date=${date}` : ''));
+
+    // 統計
+    const studentIds = new Set(plans.map(p => p.user_id));
+    document.getElementById('statsRow').innerHTML = `
+      <div class="stat-box"><div class="stat-num">${allUsers.length}</div><div class="stat-label">全部學生</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:var(--success)">${studentIds.size}</div><div class="stat-label">已提交</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:var(--warning)">${Math.max(0,allUsers.length-studentIds.size)}</div><div class="stat-label">未提交</div></div>
+      <div class="stat-box"><div class="stat-num">${plans.length}</div><div class="stat-label">時段總數</div></div>
+    `;
+
+    // 未提交名單
+    const noSec = document.getElementById('noSubmitSection');
+    if (date && allUsers.length > 0) {
+      const submitted = new Set(plans.map(p => p.user_id));
+      const notDone = allUsers.filter(u => !submitted.has(u.id));
+      if (notDone.length > 0) {
+        noSec.style.display = 'block';
+        document.getElementById('noSubmitList').innerHTML = notDone.map(u => `<span class="chip">${u.class_name} ${u.display_name}</span>`).join('');
+      } else { noSec.style.display = 'none'; }
+    } else { noSec.style.display = 'none'; }
+
+    // 甘特圖：選了日期才傳 allUsers（顯示未提交空列），沒選日期不顯示空列
+    renderGantt(plans, date ? allUsers : []);
+
+  } catch(e) {
+    document.getElementById('ganttArea').innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+  }
+}
+
+// ── 我的計劃 ─────────────────────────────────
+let slotCount = 0;
+function addSlot(data = {}) {
+  slotCount++;
+  const n = document.getElementById('slotList').children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'slot-row';
+  div.innerHTML = `
+    <div class="slot-idx">${n}</div>
+    <div class="slot-fields">
+      <div class="form-group time"><label>開始</label><input type="time" value="${data.time_start||''}" class="s-start" /></div>
+      <div class="form-group time"><label>結束</label><input type="time" value="${data.time_end||''}" class="s-end" /></div>
+      <div class="form-group content"><label>學習內容</label><textarea class="s-content" placeholder="今天要做什麼…">${data.content||''}</textarea></div>
+      <div class="form-group goal"><label>預期目標（選填）</label><textarea class="s-goal" placeholder="希望達成…">${data.goal||''}</textarea></div>
+    </div>
+    <button class="btn btn-danger" style="margin-top:22px;" onclick="removeSlot(this)">✕</button>`;
+  document.getElementById('slotList').appendChild(div);
+  reindex();
+}
+function removeSlot(btn) { btn.closest('.slot-row').remove(); reindex(); }
+function reindex() { document.querySelectorAll('#slotList .slot-idx').forEach((el,i) => el.textContent = i+1); }
+
+async function loadMyPlan() {
+  const date = document.getElementById('planDate').value;
+  if (!date) return;
+  try {
+    const plans = await api('GET', `/api/plans/me?date=${date}`);
+    document.getElementById('slotList').innerHTML = '';
+    slotCount = 0;
+    if (plans.length > 0) { plans.forEach(p => addSlot(p)); showAlert('planAlert', '✅ 已載入，可直接修改後重新送出', 'success'); }
+    else { addSlot(); document.getElementById('planAlert').innerHTML = ''; }
+  } catch {}
+}
+
+async function submitPlan() {
+  const date = document.getElementById('planDate').value;
+  if (!date) { showAlert('planAlert', '請選擇日期'); return; }
+  const slots = Array.from(document.querySelectorAll('#slotList .slot-row')).map(r => ({
+    time_start: r.querySelector('.s-start').value,
+    time_end: r.querySelector('.s-end').value,
+    content: r.querySelector('.s-content').value.trim(),
+    goal: r.querySelector('.s-goal').value.trim()
+  }));
+  try {
+    await api('POST', '/api/plans', { date, slots });
+    showAlert('planAlert', '✅ 計劃已送出！', 'success');
+    if (document.getElementById('overviewDate').value === date) loadOverview();
+  } catch(e) { showAlert('planAlert', e.message); }
+}
+
+// ── 初始化 ────────────────────────────────────
+(async () => {
+  if (token) {
+    try { currentUser = await api('GET', '/api/me'); enterApp(); }
+    catch { localStorage.removeItem('token'); token = null; }
+  }
+})();
+</script>
+</body>
+</html>
